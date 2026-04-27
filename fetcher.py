@@ -9,6 +9,14 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://serpapi.com/search"
 
+# Split routes into 7 groups (one per hour on a rolling cycle)
+NUM_GROUPS = 7
+
+
+def get_route_group(group_index: int) -> list[tuple]:
+    """Get the route subset for a given group index (0-based)."""
+    return [r for i, r in enumerate(DOMESTIC_ROUTES) if i % NUM_GROUPS == group_index]
+
 
 def _serpapi_get(params: dict, timeout: int = 60) -> dict | None:
     """Make a SerpAPI request with 429 backoff."""
@@ -81,15 +89,14 @@ class FlightFetcher:
 
         return all_flights
 
-    def fetch_all_routes(self, start_date: date = None) -> list[dict]:
+    def fetch_routes(self, routes: list[tuple], start_date: date = None) -> list[dict]:
+        """Fetch a subset of routes."""
         if start_date is None:
             start_date = date.today() + timedelta(days=1)
 
         all_flights = []
-        total_routes = len(DOMESTIC_ROUTES)
-
-        for i, (origin, dest) in enumerate(DOMESTIC_ROUTES):
-            logger.info(f"Fetching {origin}->{dest} ({i + 1}/{total_routes})")
+        for i, (origin, dest) in enumerate(routes):
+            logger.info(f"Fetching {origin}->{dest} ({i + 1}/{len(routes)})")
 
             flights = self.fetch_route(origin, dest, start_date)
             all_flights.extend(flights)
@@ -98,10 +105,20 @@ class FlightFetcher:
             time.sleep(2)
 
         logger.info(
-            f"Fetched {len(all_flights)} cheap flights total, "
+            f"Fetched {len(all_flights)} cheap flights, "
             f"used {self.api_calls_used} API calls"
         )
         return all_flights
+
+    def fetch_all_routes(self, start_date: date = None) -> list[dict]:
+        """Fetch all routes (for --once full run)."""
+        return self.fetch_routes(DOMESTIC_ROUTES, start_date)
+
+    def fetch_group(self, group_index: int, start_date: date = None) -> list[dict]:
+        """Fetch only the routes belonging to a group."""
+        routes = get_route_group(group_index)
+        logger.info(f"Fetching group {group_index} ({len(routes)} routes)")
+        return self.fetch_routes(routes, start_date)
 
     def _parse_flights(self, flights: list, origin: str,
                        destination: str, flight_date: str) -> list[dict]:
@@ -116,7 +133,6 @@ class FlightFetcher:
             if price_myr > MAX_PRICE_MYR:
                 continue
 
-            # Extract airline info from first leg
             legs = flight.get("flights", [])
             if not legs:
                 continue
@@ -132,7 +148,6 @@ class FlightFetcher:
             dep_time = departure.get("time", "")
             arr_time = arrival.get("time", "")
 
-            # Build ISO datetime strings
             dep_iso = f"{flight_date}T{dep_time}:00" if dep_time else ""
             arr_iso = f"{flight_date}T{arr_time}:00" if arr_time else ""
 

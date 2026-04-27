@@ -2,8 +2,15 @@ name: Fetch Flights
 
 on:
   schedule:
-    - cron: "0 */6 * * *"  # every 6 hours
-  workflow_dispatch:         # manual trigger
+    # Runs every hour; each run handles 1 of 7 route groups
+    # Full cycle: all 39 routes refreshed every 7 hours
+    - cron: "7 * * * *"
+  workflow_dispatch:
+    inputs:
+      group:
+        description: "Route group (0-6), or leave empty for all"
+        required: false
+        default: ""
 
 jobs:
   fetch:
@@ -17,7 +24,18 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - run: python main.py --once
+      - name: Determine group index
+        id: group
+        run: |
+          if [ -n "${{ github.event.inputs.group }}" ]; then
+            echo "index=${{ github.event.inputs.group }}" >> $GITHUB_OUTPUT
+          else
+            # Rotate through groups 0-6 based on current hour
+            echo "index=$(( $(date +%-H) % 7 ))" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch route group
+        run: python main.py --group ${{ steps.group.outputs.index }}
         env:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
