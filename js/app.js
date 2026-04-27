@@ -1,19 +1,19 @@
 // FlyFree Frontend — reads directly from Supabase
 
-const SUPABASE_URL = 'https://dtfgsskovhujxotwinzs.supabase.co'; // e.g. https://xxxx.supabase.co
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR0Zmdzc2tvdmh1anhvdHdpbnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyODA0NDAsImV4cCI6MjA5Mjg1NjQ0MH0.wwOL_VxSaeeqbfZchV_udHKHS81oz5s0aAZCnQar0aM'; // your anon public key
-
 let supabaseClient = null;
 let allFlights = [];
 let airports = {};
 
 function initSupabase() {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    const url = FLYFREE_CONFIG.SUPABASE_URL;
+    const key = FLYFREE_CONFIG.SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
         document.getElementById('flights-grid').innerHTML =
-            '<div class="empty-state"><p>Configure Supabase credentials in js/app.js</p></div>';
+            '<div class="empty-state"><p>Configure Supabase credentials in js/config.js</p></div>';
         return false;
     }
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(url, key);
     return true;
 }
 
