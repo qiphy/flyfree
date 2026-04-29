@@ -25,8 +25,8 @@ class FlightDatabase:
             return 0
 
         inserted = 0
-        for i in range(0, len(flights), 50):
-            batch = flights[i:i + 50]
+        for i in range(0, len(flights), 100):
+            batch = flights[i:i + 100]
             try:
                 self.client.table("flights").upsert(
                     batch,

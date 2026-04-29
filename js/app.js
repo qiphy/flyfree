@@ -96,7 +96,7 @@ function renderFlights(flights) {
     const countEl = document.getElementById('result-count');
 
     if (flights.length === 0) {
-        grid.innerHTML = '<div class="empty-state"><p>No flights under RM50 found</p><p class="hint">Try adjusting your filters or check back later</p></div>';
+        grid.innerHTML = '<div class="empty-state"><p>No flights under RM100 found</p><p class="hint">Try adjusting your filters or check back later</p></div>';
         countEl.textContent = '0 flights found';
         return;
     }
